@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Evolution Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-bg': '#f5f5f4',
+                        'brand-surface': '#ffffff',
+                        'brand-primary': '#d97706',
+                        'brand-secondary': '#78716c',
+                        'brand-text': '#292524',
+                        'brand-accent': '#047857'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .nav-active {
+            border-left-width: 4px;
+            border-color: #d97706;
+            background-color: #fef3c7;
+            color: #b45309;
+            font-weight: 600;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            border-radius: 0.75rem;
+            border: 1px solid #e7e5e4;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 6px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: #d97706;
+            border: 3px solid #fef3c7;
+        }
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-brand-bg text-brand-text font-sans h-screen flex overflow-hidden">
+
+    <!-- Chosen Palette: Warm Neutrals (Stone/Sand) with Amber/Gold accents for a grounded, energetic, and spiritual feel. -->
+    <!-- Application Structure Plan: A dashboard architecture with a persistent sidebar (or bottom nav on mobile) allowing non-linear exploration of the 5 core pillars of the user's goals: Overview, Sleep/Growth, Nutrition, 15-Min Workout, and Brahmacharya Mindset. This structures the complex requirements into digestible, actionable modules. User flow starts at the macro overview and drills down into specific daily protocols. -->
+    <!-- Visualization & Content Choices: 
+        1. Weight Projection (Goal: Inform/Motivate) -> Line Chart (Chart.js) -> Interactive toggle to see conservative vs optimal growth. 
+        2. Sleep vs HGH (Goal: Compare/Educate) -> Bar/Line Combo Chart (Chart.js) -> Shows why 4.5h sleep + nap is killing height growth compared to 8h continuous. 
+        3. Daily Routine (Goal: Organize) -> Vertical CSS Timeline -> Clear visual schedule.
+        4. Workout (Goal: Inform/Action) -> Interactive Cards -> Click to reveal posture/muscle cues.
+        NO SVG/Mermaid used. Unicode emojis used for iconography. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <nav class="w-20 md:w-64 bg-brand-surface border-r border-stone-200 flex-shrink-0 flex flex-col h-full z-10 transition-all duration-300">
+        <div class="p-4 md:p-6 flex items-center justify-center md:justify-start border-b border-stone-100">
+            <span class="text-2xl font-serif font-bold text-brand-primary">⚕️ <span class="hidden md:inline ml-2">Alpha Plan</span></span>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4 space-y-1">
+            <button onclick="navigate('overview')" id="nav-overview" class="w-full text-left px-4 md:px-6 py-3 text-stone-600 hover:bg-stone-50 hover:text-brand-primary transition-colors flex items-center nav-active">
+                <span class="text-xl w-8 text-center">📊</span> <span class="hidden md:inline font-medium">Dashboard</span>
+            </button>
+            <button onclick="navigate('sleep')" id="nav-sleep" class="w-full text-left px-4 md:px-6 py-3 text-stone-600 hover:bg-stone-50 hover:text-brand-primary transition-colors flex items-center">
+                <span class="text-xl w-8 text-center">🌙</span> <span class="hidden md:inline font-medium">Sleep & Height</span>
+            </button>
+            <button onclick="navigate('nutrition')" id="nav-nutrition" class="w-full text-left px-4 md:px-6 py-3 text-stone-600 hover:bg-stone-50 hover:text-brand-primary transition-colors flex items-center">
+                <span class="text-xl w-8 text-center">🥗</span> <span class="hidden md:inline font-medium">Sattvic Bulking</span>
+            </button>
+            <button onclick="navigate('training')" id="nav-training" class="w-full text-left px-4 md:px-6 py-3 text-stone-600 hover:bg-stone-50 hover:text-brand-primary transition-colors flex items-center">
+                <span class="text-xl w-8 text-center">⏱️</span> <span class="hidden md:inline font-medium">15-Min Protocol</span>
+            </button>
+            <button onclick="navigate('mindset')" id="nav-mindset" class="w-full text-left px-4 md:px-6 py-3 text-stone-600 hover:bg-stone-50 hover:text-brand-primary transition-colors flex items-center">
+                <span class="text-xl w-8 text-center">🧘‍♂️</span> <span class="hidden md:inline font-medium">Brahmacharya</span>
+            </button>
+        </div>
+        <div class="p-4 border-t border-stone-200 text-xs text-stone-400 hidden md:block">
+            Target: Class 10 Board 2027
+        </div>
+    </nav>
+
+    <main class="flex-1 h-full overflow-y-auto relative bg-brand-bg">
+        <div class="max-w-6xl mx-auto p-4 md:p-8 pb-24">
+
+            <section id="section-overview" class="block fade-in">
+                <header class="mb-8">
+                    <h1 class="text-3xl md:text-4xl font-serif font-bold text-brand-text mb-2">Personal Evolution Dashboard</h1>
+                    <p class="text-brand-secondary text-lg">A scientifically backed, spiritually grounded protocol to optimize your physical and mental growth.</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="glass-panel p-5 border-l-4 border-l-blue-500">
+                        <div class="text-sm text-stone-500 font-semibold uppercase tracking-wider mb-1">Current Weight</div>
+                        <div class="text-3xl font-bold text-stone-800">44 <span class="text-lg text-stone-500 font-normal">kg</span></div>
+                        <div class="text-sm text-brand-primary mt-2 flex items-center gap-1">🎯 Target: 52+ kg</div>
+                    </div>
+                    <div class="glass-panel p-5 border-l-4 border-l-emerald-500">
+                        <div class="text-sm text-stone-500 font-semibold uppercase tracking-wider mb-1">Height</div>
+                        <div class="text-3xl font-bold text-stone-800">~5'3"</div>
+                        <div class="text-sm text-emerald-600 mt-2">Active Growth Phase (Age 14)</div>
+                    </div>
+                    <div class="glass-panel p-5 border-l-4 border-l-red-500">
+                        <div class="text-sm text-stone-500 font-semibold uppercase tracking-wider mb-1">Sleep Architecture</div>
+                        <div class="text-3xl font-bold text-stone-800">4.5 <span class="text-lg text-stone-500 font-normal">hrs</span></div>
+                        <div class="text-sm text-red-600 mt-2 font-medium flex items-center gap-1">⚠️ Critical HGH Deficit</div>
+                    </div>
+                    <div class="glass-panel p-5 border-l-4 border-l-brand-primary">
+                        <div class="text-sm text-stone-500 font-semibold uppercase tracking-wider mb-1">Daily Training</div>
+                        <div class="text-3xl font-bold text-stone-800">15 <span class="text-lg text-stone-500 font-normal">min</span></div>
+                        <div class="text-sm text-brand-primary mt-2">High-Intensity Minimum</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 mb-8">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-brand-text">Mass Accretion Projection</h2>
+                            <p class="text-sm text-stone-500">Estimated timeline to reach 50+ kg target based on daily caloric surplus.</p>
+                        </div>
+                        <div class="flex gap-2 bg-stone-100 p-1 rounded-lg">
+                            <button onclick="updateWeightChart('consistent')" class="px-3 py-1 text-sm font-medium rounded bg-white shadow-sm text-brand-primary" id="btn-consistent">Consistent (+300 kcal)</button>
+                            <button onclick="updateWeightChart('aggressive')" class="px-3 py-1 text-sm font-medium rounded text-stone-600 hover:bg-stone-200" id="btn-aggressive">Aggressive (+500 kcal)</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">⚠️ The Primary Obstacle</h3>
+                        <p class="text-stone-600 mb-4">Your current sleep schedule (12:30 AM to 5:15 AM + afternoon nap) is severely stunting your natural height potential and muscle growth. Human Growth Hormone (HGH) is released in deep sleep pulses primarily between 10:00 PM and 2:00 AM.</p>
+                        <button onclick="navigate('sleep')" class="text-brand-primary font-medium hover:underline flex items-center gap-1">See the science <span class="text-xl">→</span></button>
+                    </div>
+                    <div class="glass-panel p-6 bg-brand-primary text-white border-none">
+                        <h3 class="font-bold text-lg mb-3 flex items-center gap-2">🧘‍♂️ The Foundation</h3>
+                        <p class="text-amber-50 mb-4 opacity-90">Following the path of Brahmacharya requires immense discipline. Your desire to improve your body must align with retaining your Ojas (vital energy). This program unites spiritual discipline with physiological science.</p>
+                        <button onclick="navigate('mindset')" class="text-white font-bold hover:underline flex items-center gap-1">View Principles <span class="text-xl">→</span></button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-sleep" class="hidden fade-in">
+                <header class="mb-8">
+                    <h1 class="text-3xl md:text-4xl font-serif font-bold text-brand-text mb-2">Auxology & Sleep Architecture</h1>
+                    <p class="text-brand-secondary text-lg">Fixing the biological bottleneck preventing your height and muscle growth.</p>
+                </header>
+
+                <div class="glass-panel p-6 mb-8 border-l-4 border-red-500 bg-red-50">
+                    <h2 class="text-xl font-bold text-red-800 mb-2">The Biological Truth at Age 14</h2>
+                    <p class="text-red-900">You are in your prime growth window, but your routine is fighting your genetics. Napping in the afternoon <strong>does not</strong> replace the nocturnal deep sleep required for Somatropin (HGH) release. You must shift your bedtime to capture the critical 10 PM - 2 AM window.</p>
+                </div>
+
+                <div class="glass-panel p-6 mb-8">
+                    <h2 class="text-xl font-bold text-brand-text mb-2">HGH Release: Current vs. Optimal Schedule</h2>
+                    <p class="text-sm text-stone-500 mb-6">Compare the hormonal response of your segmented sleep vs continuous night sleep.</p>
+                    
+                    <div class="flex gap-4 mb-4 border-b border-stone-200 pb-4">
+                        <button onclick="toggleHGHChart('current')" id="btn-hgh-current" class="px-4 py-2 rounded-md font-medium bg-red-100 text-red-700">Your Current Sleep</button>
+                        <button onclick="toggleHGHChart('optimal')" id="btn-hgh-optimal" class="px-4 py-2 rounded-md font-medium text-stone-600 hover:bg-stone-100 border border-transparent">Optimal Sleep</button>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="hghChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-panel p-6">
+                        <h3 class="font-bold text-lg mb-4 text-brand-primary border-b pb-2">Addressing the Recessed Chin</h3>
+                        <p class="text-stone-600 mb-3">At 14, your facial bones are still malleable. A recessed chin is often caused by poor tongue posture, mouth breathing, and forward head posture.</p>
+                        <ul class="space-y-3 text-stone-700">
+                            <li class="flex items-start gap-2">
+                                <span class="text-green-600 font-bold">✓</span>
+                                <span><strong>Proper Tongue Posture (Mewing):</strong> The entire tongue must rest on the roof of the mouth, applying gentle pressure to the maxilla. Keep lips sealed, breathe through the nose.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-green-600 font-bold">✓</span>
+                                <span><strong>Chin Tucks:</strong> Stand against a wall and pull your head straight back, giving yourself a "double chin." Hold for 5 seconds. Do 10 reps daily to fix neck posture.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-green-600 font-bold">✓</span>
+                                <span><strong>Chewing:</strong> Eat harder, whole foods (carrots, nuts) to develop the masseter muscles and stimulate jaw growth.</span>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="glass-panel p-6">
+                        <h3 class="font-bold text-lg mb-4 text-brand-primary border-b pb-2">Height Optimization Tactics</h3>
+                        <p class="text-stone-600 mb-3">Besides sleep, you can visually and physically optimize your height immediately.</p>
+                        <ul class="space-y-3 text-stone-700">
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-500 text-xl">🧍</span>
+                                <span><strong>Spinal Decompression:</strong> School desks compress the spine. Hang from a pull-up bar for 30-60 seconds daily to decompress spinal discs.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="text-blue-500 text-xl">🚶</span>
+                                <span><strong>Fix Pelvic Tilt:</strong> Weak abs and tight hips make you look shorter. The 15-min workout will address this to give you 1-2 inches of immediate "postural height."</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="section-nutrition" class="hidden fade-in">
+                <header class="mb-8">
+                    <h1 class="text-3xl md:text-4xl font-serif font-bold text-brand-text mb-2">Sattvic Hypertrophy</h1>
+                    <p class="text-brand-secondary text-lg">Fueling muscle growth from 44kg to 52kg while adhering to pure, vegetarian principles.</p>
+                </header>
+
+                <div class="glass-panel p-6 mb-8 text-center bg-stone-50">
+                    <div class="text-sm font-bold text-stone-500 uppercase tracking-widest mb-2">The Math of Gaining Weight</div>
+                    <p class="text-xl text-stone-800 mb-4">To gain weight, you must eat more calories than you burn. Exercise tells the body <em>where</em> to put the weight (muscle instead of fat).</p>
+                    <div class="inline-flex items-center justify-center gap-4 text-lg font-mono bg-white p-3 rounded shadow-sm border border-stone-200">
+                        <span class="text-stone-600">Base Burn: ~1800</span>
+                        <span class="text-stone-400">+</span>
+                        <span class="text-stone-600">Growth Surplus: 500</span>
+                        <span class="text-stone-400">=</span>
+                        <span class="font-bold text-brand-accent">Target: 2300 kcal/day</span>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-bold mb-4 border-l-4 border-brand-primary pl-3">Sattvic Bulking Staples (Junk-Free)</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                    <div class="bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-4xl mb-2">🥛</div>
+                        <h4 class="font-bold text-lg text-stone-800">Whole Milk & Paneer</h4>
+                        <p class="text-sm text-stone-600 mt-1">High-quality casein and whey protein. Essential for muscle repair overnight. Paneer provides dense, clean calories.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-4xl mb-2">🥜</div>
+                        <div class="flex justify-between items-start">
+                            <h4 class="font-bold text-lg text-stone-800">Nuts & Ghee</h4>
+                        </div>
+                        <p class="text-sm text-stone-600 mt-1">Almonds, walnuts, and pure cow's ghee. The easiest way to add 300+ calories to your day without feeling bloated. Boosts testosterone.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-4xl mb-2">🌾</div>
+                        <h4 class="font-bold text-lg text-stone-800">Sattu & Bananas</h4>
+                        <p class="text-sm text-stone-600 mt-1">Roasted gram flour (Sattu) is a regional superfood. Mixed with milk and bananas, it creates a massive 500+ calorie, high-protein shake.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-4xl mb-2">🍛</div>
+                        <h4 class="font-bold text-lg text-stone-800">Dal & Rice</h4>
+                        <p class="text-sm text-stone-600 mt-1">Combined, they form a complete protein. Do not skip your main meals. Eat a slightly larger portion than you normally would.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-4xl mb-2">🫘</div>
+                        <h4 class="font-bold text-lg text-stone-800">Sprouted Chana</h4>
+                        <p class="text-sm text-stone-600 mt-1">Living food, highly Sattvic. Great for micronutrients and digestive enzymes. Excellent study snack.</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-stone-200 shadow-sm hover:shadow-md transition-shadow">
+                        <div class="text-4xl mb-2">🍠</div>
+                        <h4 class="font-bold text-lg text-stone-800">Sweet Potatoes</h4>
+                        <p class="text-sm text-stone-600 mt-1">Complex carbohydrates to fuel your 15-minute workouts and keep brain energy stable for studying.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 bg-amber-50 border-amber-200">
+                    <h3 class="font-bold text-brand-primary mb-2 flex items-center gap-2">⚠️ The "No Junk" Advantage</h3>
+                    <p class="text-stone-700">Since you only eat junk food once a week, your insulin sensitivity is likely excellent. Every calorie you eat from the clean sources above will go directly toward building muscle and bone density rather than fat. Keep the junk food to just that single weekly meal.</p>
+                </div>
+            </section>
+
+            <section id="section-training" class="hidden fade-in">
+                <header class="mb-8">
+                    <h1 class="text-3xl md:text-4xl font-serif font-bold text-brand-text mb-2">The Minimum Effective Dose</h1>
+                    <p class="text-brand-secondary text-lg">You don't need 2 hours in a gym. You need 15 minutes of extreme focus and high intensity.</p>
+                </header>
+
+                <p class="text-stone-600 mb-6 max-w-3xl">This protocol uses bodyweight exercises taken close to muscular failure. Do this routine 4 times a week (e.g., Mon, Tue, Thu, Fri). It is designed to broaden shoulders, build legs, and fix posture for height.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    
+                    <!-- Exercise Card 1 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer" onclick="toggleDetails('ex1')">
+                        <div class="h-32 bg-stone-800 text-stone-100 flex flex-col items-center justify-center relative">
+                            <span class="text-4xl mb-2">🦍</span>
+                            <h3 class="font-bold text-lg">Push-ups</h3>
+                            <div class="absolute top-2 right-2 text-xs bg-stone-600 px-2 py-1 rounded">Chest/Triceps</div>
+                        </div>
+                        <div class="p-4">
+                            <p class="font-bold text-brand-primary mb-1">3 Sets to Failure</p>
+                            <p class="text-sm text-stone-600 mb-3">Rest 60 seconds between sets.</p>
+                            <div id="ex1-details" class="hidden text-sm border-t pt-3 mt-2">
+                                <ul class="list-disc pl-4 space-y-1 text-stone-700">
+                                    <li>Keep core tight, body straight.</li>
+                                    <li>Go all the way down, chest touches floor.</li>
+                                    <li>If too hard, do them on your knees or hands elevated on a bed.</li>
+                                </ul>
+                            </div>
+                            <div class="text-center mt-2 text-stone-400 text-xs uppercase tracking-wide group-hover:text-brand-primary transition-colors">Click for technique</div>
+                        </div>
+                    </div>
+
+                    <!-- Exercise Card 2 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer" onclick="toggleDetails('ex2')">
+                        <div class="h-32 bg-stone-800 text-stone-100 flex flex-col items-center justify-center relative">
+                            <span class="text-4xl mb-2">🦵</span>
+                            <h3 class="font-bold text-lg">Bulgarian Split Squats</h3>
+                            <div class="absolute top-2 right-2 text-xs bg-stone-600 px-2 py-1 rounded">Legs/Glutes</div>
+                        </div>
+                        <div class="p-4">
+                            <p class="font-bold text-brand-primary mb-1">3 Sets of 10-15 (Each Leg)</p>
+                            <p class="text-sm text-stone-600 mb-3">Rest 60 seconds between sets.</p>
+                            <div id="ex2-details" class="hidden text-sm border-t pt-3 mt-2">
+                                <ul class="list-disc pl-4 space-y-1 text-stone-700">
+                                    <li>Put one foot back on a chair or bed.</li>
+                                    <li>Lower yourself until your back knee almost touches the ground.</li>
+                                    <li>Leg muscles are the biggest in the body; building them increases overall body weight fast.</li>
+                                </ul>
+                            </div>
+                            <div class="text-center mt-2 text-stone-400 text-xs uppercase tracking-wide group-hover:text-brand-primary transition-colors">Click for technique</div>
+                        </div>
+                    </div>
+
+                    <!-- Exercise Card 3 -->
+                    <div class="bg-white rounded-xl shadow-sm border border-stone-200 overflow-hidden group hover:shadow-lg transition-shadow cursor-pointer" onclick="toggleDetails('ex3')">
+                        <div class="h-32 bg-stone-800 text-stone-100 flex flex-col items-center justify-center relative">
+                            <span class="text-4xl mb-2">🧗‍♂️</span>
+                            <h3 class="font-bold text-lg">Pull-ups or Dead Hangs</h3>
+                            <div class="absolute top-2 right-2 text-xs bg-stone-600 px-2 py-1 rounded">Back/Height</div>
+                        </div>
+                        <div class="p-4">
+                            <p class="font-bold text-brand-primary mb-1">3 Sets of Max Time/Reps</p>
+                            <p class="text-sm text-stone-600 mb-3">Rest 60 seconds between sets.</p>
+                            <div id="ex3-details" class="hidden text-sm border-t pt-3 mt-2">
+                                <ul class="list-disc pl-4 space-y-1 text-stone-700">
+                                    <li>Find a bar or sturdy door frame.</li>
+                                    <li>If you can't pull up, just hang for as long as possible.</li>
+                                    <li>Hanging decompresses the spine, maximizing your height, and builds massive forearms.</li>
+                                </ul>
+                            </div>
+                            <div class="text-center mt-2 text-stone-400 text-xs uppercase tracking-wide group-hover:text-brand-primary transition-colors">Click for technique</div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-5">
+                    <h4 class="font-bold text-emerald-800 mb-2">Consistency over Complexity</h4>
+                    <p class="text-emerald-700 text-sm">Because this takes only 15 minutes, you have zero excuses not to do it. Focus on progressive overload—try to do one more pushup or hang one second longer than last time. That is how muscles grow.</p>
+                </div>
+            </section>
+
+            <section id="section-mindset" class="hidden fade-in">
+                <header class="mb-8">
+                    <h1 class="text-3xl md:text-4xl font-serif font-bold text-brand-text mb-2">Brahmacharya & Discipline</h1>
+                    <p class="text-brand-secondary text-lg">The preservation and transmutation of vital energy (Ojas) for academic and physical excellence, inspired by Premanand Ji Maharaja.</p>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-8 mb-8">
+                    <div class="md:col-span-7 space-y-6">
+                        <div class="glass-panel p-6 border-t-4 border-brand-primary">
+                            <h3 class="font-serif font-bold text-xl mb-3">The Principle of Ojas</h3>
+                            <p class="text-stone-700 mb-3">Brahmacharya is not merely abstention; it is the active redirection of life force. When you conserve your vital energy, it sublimates into <em>Ojas</em>—manifesting as mental clarity, physical glow, immunity, and unparalleled focus for your 2027 Board Exams.</p>
+                            <blockquote class="border-l-4 border-amber-300 pl-4 italic text-stone-600 mt-4 bg-amber-50 p-3 rounded-r">
+                                "Control the mind by controlling the senses. Diet (Sattvic), environment, and thoughts must be pure."
+                            </blockquote>
+                        </div>
+
+                        <div class="glass-panel p-6">
+                            <h3 class="font-serif font-bold text-xl mb-3">Modern Distractions (Digital Celibacy)</h3>
+                            <p class="text-stone-700">Physical Brahmacharya is impossible without mental Brahmacharya. Scrolling through short-form content destroys dopamine receptors and weakens resolve.</p>
+                            <div class="mt-4 flex flex-wrap gap-2">
+                                <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium border border-red-200">❌ Late Night Scrolling</span>
+                                <span class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium border border-red-200">❌ Explicit Content</span>
+                                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium border border-green-200">✅ Reading/Studying</span>
+                                <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium border border-green-200">✅ Satsang/Meditation</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-5">
+                        <div class="glass-panel p-6 h-full">
+                            <h3 class="font-bold text-lg mb-6 border-b pb-2 text-brand-primary">The Ideal Daily Schedule</h3>
+                            
+                            <div class="relative pl-8 space-y-6 before:absolute before:inset-0 before:ml-[13px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-stone-300 before:to-transparent">
+                                
+                                <div class="relative timeline-item">
+                                    <div class="font-bold text-brand-text">05:15 AM</div>
+                                    <div class="text-sm font-semibold text-brand-primary">Brahma Muhurta Wake Up</div>
+                                    <div class="text-xs text-stone-500 mt-1">Gratitude, hydration, quick stretch. Perfect time for study/focus.</div>
+                                </div>
+                                
+                                <div class="relative timeline-item">
+                                    <div class="font-bold text-brand-text">06:30 AM</div>
+                                    <div class="text-sm font-semibold text-stone-700">School Commute</div>
+                                    <div class="text-xs text-stone-500 mt-1">Maintain mental peace, avoid negative peer talk.</div>
+                                </div>
+                                
+                                <div class="relative timeline-item">
+                                    <div class="font-bold text-brand-text">03:00 PM</div>
+                                    <div class="text-sm font-semibold text-stone-700">Return & Nutrition</div>
+                                    <div class="text-xs text-stone-500 mt-1">Heavy Sattvic meal (Dal, Rice, Ghee).</div>
+                                </div>
+
+                                <div class="relative timeline-item">
+                                    <div class="font-bold text-brand-text">05:00 PM</div>
+                                    <div class="text-sm font-semibold text-brand-accent">15-Min Protocol</div>
+                                    <div class="text-xs text-stone-500 mt-1">Intense workout. Push-ups, Squats, Hanging.</div>
+                                </div>
+
+                                <div class="relative timeline-item">
+                                    <div class="font-bold text-brand-text">06:00 PM - 9:00 PM</div>
+                                    <div class="text-sm font-semibold text-stone-700">Deep Work / Study</div>
+                                    <div class="text-xs text-stone-500 mt-1">Board exam preparation. Phone in another room.</div>
+                                </div>
+                                
+                                <div class="relative timeline-item">
+                                    <div class="font-bold text-brand-text">09:30 PM</div>
+                                    <div class="text-sm font-semibold text-brand-primary">Lights Out (Mandatory)</div>
+                                    <div class="text-xs text-stone-500 mt-1">No screens. Sleep to maximize Growth Hormone.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script>
+        // --- Navigation Logic ---
+        function navigate(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('main > div > section').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('fade-in');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('nav button').forEach(el => {
+                el.classList.remove('nav-active', 'bg-fef3c7', 'border-l-4', 'border-brand-primary');
+                // Reset to default styling
+                el.classList.add('text-stone-600', 'hover:bg-stone-50');
+            });
+
+            // Show selected section
+            const targetSection = document.getElementById('section-' + sectionId);
+            targetSection.classList.remove('hidden');
+            // Trigger reflow for animation
+            void targetSection.offsetWidth;
+            targetSection.classList.add('fade-in');
+
+            // Set active class on clicked nav
+            const activeNav = document.getElementById('nav-' + sectionId);
+            activeNav.classList.add('nav-active');
+            activeNav.classList.remove('text-stone-600', 'hover:bg-stone-50');
+
+            // Render charts if navigating to those sections to ensure they size correctly
+            if(sectionId === 'overview' && weightChartInstance) {
+                weightChartInstance.resize();
+            }
+            if(sectionId === 'sleep' && !hghChartInstance) {
+                initHGHChart();
+            } else if (sectionId === 'sleep') {
+                hghChartInstance.resize();
+            }
+        }
+
+        // --- UI Interactions ---
+        function toggleDetails(exerciseId) {
+            const detailsDiv = document.getElementById(exerciseId + '-details');
+            if(detailsDiv.classList.contains('hidden')) {
+                detailsDiv.classList.remove('hidden');
+            } else {
+                detailsDiv.classList.add('hidden');
+            }
+        }
+
+        // --- Data & Charts ---
+        Chart.defaults.font.family = 'Inter, sans-serif';
+        Chart.defaults.color = '#78716c';
+
+        // 1. Weight Projection Chart
+        let weightChartInstance = null;
+        const weightData = {
+            labels: ['Month 0 (Now)', 'Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5', 'Month 6'],
+            consistent: [44, 45.2, 46.5, 47.8, 49.0, 50.2, 51.5],
+            aggressive: [44, 45.8, 47.5, 49.2, 51.0, 52.8, 54.5]
+        };
+
+        function initWeightChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            weightChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: weightData.labels,
+                    datasets: [{
+                        label: 'Projected Weight (kg)',
+                        data: weightData.consistent,
+                        borderColor: '#d97706', // brand-primary
+                        backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#d97706',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(41, 37, 36, 0.9)',
+                            titleFont: { size: 13 },
+                            bodyFont: { size: 14, weight: 'bold' },
+                            padding: 10,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) { return context.parsed.y + ' kg'; }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            min: 40,
+                            max: 56,
+                            grid: { color: '#f5f5f4', drawBorder: false },
+                            ticks: { stepSize: 2 }
+                        },
+                        x: {
+                            grid: { display: false, drawBorder: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateWeightChart(type) {
+            // Update button styles
+            document.getElementById('btn-consistent').className = type === 'consistent' 
+                ? 'px-3 py-1 text-sm font-medium rounded bg-white shadow-sm text-brand-primary' 
+                : 'px-3 py-1 text-sm font-medium rounded text-stone-600 hover:bg-stone-200';
+            
+            document.getElementById('btn-aggressive').className = type === 'aggressive' 
+                ? 'px-3 py-1 text-sm font-medium rounded bg-white shadow-sm text-brand-primary' 
+                : 'px-3 py-1 text-sm font-medium rounded text-stone-600 hover:bg-stone-200';
+
+            // Update data
+            weightChartInstance.data.datasets[0].data = weightData[type];
+            if(type === 'aggressive') {
+                weightChartInstance.data.datasets[0].borderColor = '#047857'; // emerald
+                weightChartInstance.data.datasets[0].backgroundColor = 'rgba(4, 120, 87, 0.1)';
+                weightChartInstance.data.datasets[0].pointBorderColor = '#047857';
+            } else {
+                weightChartInstance.data.datasets[0].borderColor = '#d97706';
+                weightChartInstance.data.datasets[0].backgroundColor = 'rgba(217, 119, 6, 0.1)';
+                weightChartInstance.data.datasets[0].pointBorderColor = '#d97706';
+            }
+            weightChartInstance.update();
+        }
+
+        // 2. HGH vs Sleep Chart
+        let hghChartInstance = null;
+        const hghData = {
+            labels: ['10 PM', '11 PM', '12 AM', '1 AM', '2 AM', '3 AM', '4 AM', '5 AM', '2 PM (Nap)'],
+            current: [10, 15, 20, 80, 60, 40, 30, 15, 25], // Asleep at 12:30, misses early peak, nap is weak
+            optimal: [10, 90, 100, 85, 50, 40, 30, 20, 10]  // Asleep at 9:30, catches massive SWS peak
+        };
+
+        function initHGHChart() {
+            const ctx = document.getElementById('hghChart').getContext('2d');
+            hghChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: hghData.labels,
+                    datasets: [{
+                        label: 'HGH Release Level',
+                        data: hghData.current,
+                        backgroundColor: 'rgba(220, 38, 38, 0.7)', // Red for current (bad)
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(41, 37, 36, 0.9)',
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y > 70 ? 'Massive HGH Pulse' : 
+                                           context.parsed.y > 40 ? 'Moderate HGH Release' : 'Low Release';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false, // Hide abstract numbers
+                            max: 110
+                        },
+                        x: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleHGHChart(type) {
+            // Update button styles
+            const btnCurrent = document.getElementById('btn-hgh-current');
+            const btnOptimal = document.getElementById('btn-hgh-optimal');
+            
+            if (type === 'current') {
+                btnCurrent.className = 'px-4 py-2 rounded-md font-medium bg-red-100 text-red-700';
+                btnOptimal.className = 'px-4 py-2 rounded-md font-medium text-stone-600 hover:bg-stone-100 border border-transparent';
+                hghChartInstance.data.datasets[0].data = hghData.current;
+                hghChartInstance.data.datasets[0].backgroundColor = 'rgba(220, 38, 38, 0.7)';
+            } else {
+                btnOptimal.className = 'px-4 py-2 rounded-md font-medium bg-emerald-100 text-emerald-800';
+                btnCurrent.className = 'px-4 py-2 rounded-md font-medium text-stone-600 hover:bg-stone-100 border border-transparent';
+                hghChartInstance.data.datasets[0].data = hghData.optimal;
+                hghChartInstance.data.datasets[0].backgroundColor = 'rgba(4, 120, 87, 0.8)';
+            }
+            hghChartInstance.update();
+        }
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            initWeightChart();
+            // Start on overview, other charts init when navigated
+        });
+
+    </script>
+</body>
+</html>
